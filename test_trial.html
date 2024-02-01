@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="jspsych/dist/jspsych.js"></script>
+    <script src="jsPsych/dist/plugin-html-keyboard-response.js"></script>
+    <script src="jsPsych/dist/plugin-html-button-response.js"></script>
+    <script src="jsPsych/dist/plugin-image-button-response.js"></script>
+    <script src="jsPsych/dist/plugin-image-keyboard-response.js"></script>
+    <script src="jspsych/dist/plugin-categorize-image.js"></script>
+    <script src="jspsych/dist/plugin-preload.js"></script>
+    <script src="jspsych/dist/plugin-fullscreen.js"></script>
+    <script src="jspsych/dist/plugin-external-html.js"></script>
+
+    <link href="jspsych/dist/jspsych.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: rgb(127,127,127);
+        }
+    </style>
+</head>
+<body>
+    <script>
+
+        //var turkInfo = jsPsych.turk.turkInfo();
+        var elem = document.createElement('div');
+        elem.style.width = '1in';
+        document.body.appendChild(elem);
+        var ppi = elem.offsetWidth;
+
+        var d = 20;
+        var L_px = 2 * 0.0699 * d;
+        var pixels_scaled = L_px * ppi;
+
+        function removeItemOnce(arr, value) {
+            var index = arr.indexOf(value);
+            if (index > -1) {
+                arr.splice(index, 1);
+            }
+            return arr;
+        };
+
+       
+        var jsPsych = initJsPsych({
+            on_finish: function () {
+                var csv = jsPsych.data.get().csv();
+                var filename = "results.csv";
+                var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                if (navigator.msSaveBlob) { // IE 10+
+                    navigator.msSaveBlob(blob, filename);
+                } else {
+                    var link = document.createElement("a");
+                    if (link.download !== undefined) { // feature detection
+                        // Browsers that support HTML5 download attribute
+                        var url = URL.createObjectURL(blob);
+                        link.setAttribute("href", url);
+                        link.setAttribute("download", filename);
+                        link.style.visibility = 'hidden';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }
+                }
+            }
+        });
+
+        var images_load = [];
+        for (var i = 0; i < 200; i++) {
+            images_load.push('/Users/ramahuja/Library/CloudStorage/Dropbox-KoLab/ViTA Lab Datastore/users/ram/thesis/images/coco/coco200/im' + i + '.png');
+        }
+        var preload = {
+            type: jsPsychPreload,
+            images: images_load,
+            message: '<p>Loading images...</p>',
+        };
+
+        var timeline = [];
+
+        timeline.push(preload);
+
+        var welcome = {
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: '<p>Welcome to my experiment</p>' + 
+                    '<p>Press any key to begin.</p>',
+        }; 
+
+        timeline.push(welcome);
+    
+        var consent = {
+        type: jsPsychHtmlButtonResponse,
+        stimulus: '<p>Please click and read the the following link. Press agree if you would like to particpate in this study</p><a href="https://www.dropbox.com/s/s339mekcw7yq8h0/HPRC_Informed_Consent_Form%20%281%29.pdf?dl=0" target="_blank">Click Here</a>',
+        choices: ['Agree'],
+        };
+
+        timeline.push(consent);
+
+        var full_screen = {
+          type: jsPsychFullscreen,
+          fullscreen_mode: true
+        };
+
+        timeline.push(full_screen);
+
+        var instructions = {
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: "<p>Please fixate at the center '+' sign which will appear once you press any key. You will see a stream of images on the screen.</p>" + 
+            "<p>Press the <strong> 'SPACE BAR' </strong> key any time you see an <strong> image </strong> you saw before. Press 'SPACE BAR' when you see the image and not during the '+'.</p>"+
+                "<p>Press any key to begin.</p>",
+            data: {
+                task: 'intro'
+            }
+        };
+
+        timeline.push(instructions);
+
+        var fixation = {
+            type: jsPsychHtmlKeyboardResponse,
+            stimulus: '<div style="font-size:60px;">+</div>',
+            choices: [' '],
+            trial_duration: 1000,
+            post_trial_gap: 0,
+            data: {
+                task: 'fixation'
+            }
+        };
+        
+        let numbers_list = [];
+        for (let i = 0; i < 200; i++) {
+            numbers_list.push(i);
+        }
+        //console.log(numbers_list);
+
+        for (let x = 0; x < 2; x++) {
+            let order_of_imgs = [];
+            let fillerImages = [];
+
+            // Select the first target image
+            let targetIndexX = Math.floor(Math.random() * numbers_list.length);
+            let targetX = numbers_list.splice(targetIndexX, 1)[0]; // Remove the image from the array
+            let target_numberX = targetX.toString();
+
+            // Select the second target image, ensure it's different from the first
+            let targetIndexY = Math.floor(Math.random() * numbers_list.length);
+            let targetY = numbers_list.splice(targetIndexY, 1)[0]; // Remove the image from the array
+            let target_numberY = targetY.toString();
+
+            // Random number of filler images between first and second target
+            let randomFillerCount = Math.floor(Math.random() * (7 - 3 + 1)) + 3;
+
+            // Random number of filler images for vigilance check
+            let randomVigilanceCount = Math.floor(Math.random() * (2 - 1 + 1)) + 1;
+
+            // Add first target image
+            order_of_imgs.push(target_numberX);
+
+            // Add random filler images
+            for (let i = 0; i < randomFillerCount; i++) {
+                let fillerIndex = Math.floor(Math.random() * numbers_list.length);
+                let filler = numbers_list.splice(fillerIndex, 1)[0]; // Remove the image from the array
+                fillerImages.push(filler.toString());
+            }
+
+            // Add second target image
+            order_of_imgs.push(target_numberY);
+
+            // Add first target image again
+            order_of_imgs.push(target_numberX);
+
+            // Add random filler images for vigilance check
+            for (let i = 0; i < randomVigilanceCount; i++) {
+                let fillerIndex = Math.floor(Math.random() * numbers_list.length);
+                let filler = numbers_list.splice(fillerIndex, 1)[0]; // Remove the image from the array
+                fillerImages.push(filler.toString());
+            }
+
+            // Add second target image again
+            order_of_imgs.push(target_numberY);
+
+            // Shuffle the filler images to create randomness
+            let shuffledFillerImages = jsPsych.randomization.shuffle(fillerImages);
+
+            // Create a new array that includes the targets and shuffled filler images
+            let final_order_of_imgs = [order_of_imgs[0], ...shuffledFillerImages.slice(0, randomFillerCount), order_of_imgs[1], order_of_imgs[2], ...shuffledFillerImages.slice(randomFillerCount), order_of_imgs[3]];
+            console.log(final_order_of_imgs);
+
+            final_order_of_imgs.forEach(number => {
+                let image_path = '/Users/ramahuja/Library/CloudStorage/Dropbox-KoLab/ViTA Lab Datastore/users/ram/thesis/images/coco/coco200/im' + number + '.png';
+                let img = '<img src ="'+ image_path +'">';
+
+                var trial = {
+                    type: jsPsychHtmlKeyboardResponse,
+                    stimulus: img,
+                    choices: [' '],
+                    trial_duration: 100,
+                    post_trial_gap: 0,
+                    data: {
+                        task: 'stimuli'
+                    }
+                };
+
+                timeline.push(trial);
+                timeline.push(fixation);
+            });
+        };
+
+        jsPsych.run(timeline
+        );
+    
+
+    </script>
+</body>
+
+</html>
